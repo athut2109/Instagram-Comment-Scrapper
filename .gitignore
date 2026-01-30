@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.idea/
+.vscode/
+auth_state.json
+debug_screenshot.png
+results.json
+all_comments_debug.json
+all_comments_raw_debug.json
+results.csv
+requirements.txt
+copilot-instructions.md
