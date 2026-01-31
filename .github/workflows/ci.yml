@@ -22,5 +22,24 @@ jobs:
           pip install -r requirements.txt
       - name: Initialize DB
         run: python scripts/init_db.py
+
+      - name: Wait for Redis
+        run: |
+          python - <<'PY'
+          import time
+          import redis
+          url = 'redis://localhost:6379'
+          for i in range(15):
+              try:
+                  r = redis.from_url(url)
+                  r.ping()
+                  print('redis is up')
+                  break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit('Redis did not start')
+          PY
+
       - name: Run tests
         run: pytest -q

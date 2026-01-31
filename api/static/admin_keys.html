@@ -17,7 +17,7 @@
   <button onclick="createKey()">Create</button>
   <pre id="created" style="background:#f6f6f6;padding:8px"></pre>
   <h3>Existing keys</h3>
-  <pre id="keys" style="background:#f6f6f6;padding:8px"></pre>
+  <div id="keys" style="background:#f6f6f6;padding:8px"></div>
 
   <script>
     function authHeader() {
@@ -32,8 +32,31 @@
         const r = await fetch('/admin/keys', { headers });
         if (!r.ok) throw new Error(await r.text());
         const body = await r.json();
-        document.getElementById('keys').textContent = JSON.stringify(body, null, 2);
+        renderKeys(body.keys || []);
       } catch (e) { alert('Failed to fetch keys: ' + e); }
+    }
+
+    function renderKeys(keys) {
+      if (!keys || keys.length === 0) {
+        document.getElementById('keys').innerHTML = '<em>No keys</em>';
+        return;
+      }
+      const rows = keys.map(k => {
+        const revoked = k.revoked ? '<strong style="color:#a00">REVOKED</strong>' : '';
+        return `<div style="border-bottom:1px solid #eee;padding:8px;margin-bottom:6px"><div><strong>ID:</strong> ${k.key_id} ${revoked}</div><div><strong>prefix:</strong> ${k.key_prefix} <strong>scopes:</strong> ${k.scopes}</div><div><strong>desc:</strong> ${k.description || ''}</div><div><button onclick="revokeKey('${k.key_id}')">Revoke</button></div></div>`;
+      });
+      document.getElementById('keys').innerHTML = rows.join('\n');
+    }
+
+    async function revokeKey(keyId) {
+      if (!confirm('Revoke key ' + keyId + '?')) return;
+      const headers = authHeader();
+      try {
+        const r = await fetch(`/admin/keys/${keyId}/revoke`, { method: 'POST', headers });
+        if (!r.ok) throw new Error(await r.text());
+        alert('Revoked');
+        refresh();
+      } catch (e) { alert('Failed to revoke key: ' + e); }
     }
 
     async function createKey() {
@@ -49,7 +72,7 @@
     }
 
     // Initial load uses a short timeout so the UI is responsive
-    setTimeout(() => {}, 100);
+    setTimeout(() => { /* no-op */ }, 100);
   </script>
 </body>
 </html>
