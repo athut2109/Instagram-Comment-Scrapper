@@ -23,19 +23,52 @@ jobs:
           echo "Recursive listing:"
           ls -R
           python -m pip install --upgrade pip
+          echo "pip version and info:"
+          pip --version
+          pip debug --verbose || true
+          echo "requirements.txt contents (if present):"
           if [ -f requirements.txt ]; then
-            echo "Found requirements.txt — installing"
-            pip install -r requirements.txt
+            cat requirements.txt || true
+          fi
+
+          # All install output goes to install.log for easier artifact upload
+          exec > >(tee install.log) 2>&1
+
+          # Try installing redis explicitly to detect availability/issues early
+          echo "Attempting to pip install redis==5.0.6 (explicit check)"
+          python -m pip install --no-cache-dir -v redis==5.0.6 || true
+          python -m pip index versions redis || true
+
+          if [ -f requirements.txt ]; then
+            echo "Found requirements.txt — installing (verbose)"
+            pip install --no-cache-dir -v -r requirements.txt || {
+              echo "pip install -r requirements.txt failed — showing pip debug and attempting to install redis directly"
+              pip debug || true
+              pip install --no-cache-dir -v redis==5.0.6 || true
+              echo "--- pip freeze (post-failure) ---"
+              pip freeze || true
+              exit 1
+            }
           elif [ -f pyproject.toml ]; then
-            echo "Found pyproject.toml — installing package"
-            pip install .
+            echo "Found pyproject.toml — installing package (verbose)"
+            pip install -v . || exit 1
           elif [ -f setup.py ]; then
-            echo "Found setup.py — installing package"
-            pip install .
+            echo "Found setup.py — installing package (verbose)"
+            pip install -v . || exit 1
           else
             echo "No requirements.txt, pyproject.toml, or setup.py found. Exiting with error."
             exit 1
           fi
+          echo "--- pip freeze (post-install) ---"
+          pip freeze
+
+      - name: Upload install logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-logs
+          path: install.log
+
       - name: Initialize DB
         run: python scripts/init_db.py
 
