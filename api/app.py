@@ -7,6 +7,7 @@ from datetime import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
+from pathlib import Path
 
 from api.security import get_api_key, rate_limiter
 
@@ -165,6 +166,21 @@ def admin_create_key(req: KeyCreate, api_key: str | None = Depends(get_api_key))
     record = keyman.create_key(scopes=req.scopes, description=req.description)
     # Return plaintext token once to operator
     return {'key_id': record['key_id'], 'token': record['token'], 'scopes': record['scopes'], 'description': record['description']}
+
+
+@app.get('/admin/ui')
+def admin_ui(api_key: str | None = Depends(get_api_key)):
+    """Serve a very small single-file admin UI for key management.
+
+    The page prompts for an admin token (unless an env key is used by the browser) and then allows create/list/revoke via the API.
+    """
+    from fastapi.responses import HTMLResponse
+    html = Path(__file__).parent / 'static' / 'admin_keys.html'
+    try:
+        content = html.read_text(encoding='utf-8')
+        return HTMLResponse(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get('/admin/keys')

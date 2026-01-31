@@ -64,14 +64,10 @@ def _use_redis_rate_limiter(key: str) -> bool:
     try:
         import redis as _redis
         r = _redis.from_url(REDIS_URL)
-        # token-bucket style: use simple counter with expiry = WINDOW. Return True if OK.
-        k = f"rate:{key}"
-        cur = r.incr(k)
-        if cur == 1:
-            r.expire(k, WINDOW)
-        if cur > RATE_LIMIT:
-            return False
-        return True
+        from api.rate_limiter import allow_request
+        ok = allow_request(r, key, RATE_LIMIT, WINDOW)
+        # allow_request returns True/False, or None on error
+        return ok
     except Exception:
         return None
 
