@@ -36,14 +36,26 @@ def test_admin_endpoints_flow():
     created_token = body['token']
     created_id = body['key_id']
 
-    # Use the created key to call scans endpoints (should be allowed)
-    r2 = client.get('/', headers={'X-API-KEY': created_token})
-    assert r2.status_code == 200
+    # Use the created key to call a protected scans endpoint (should be allowed)
+    r2 = client.post('/scans', headers={'X-API-KEY': created_token}, json={
+        'post_url': 'https://www.instagram.com/p/TEST123/',
+        'mode': 'keyword',
+        'threshold': 0.7,
+        'scrolls': 1,
+        'scroll_delay': 100
+    })
+    assert r2.status_code == 202
 
     # Revoke the created key
     r3 = client.post(f'/admin/keys/{created_id}/revoke', headers=headers)
     assert r3.status_code == 200
 
-    # After revoke, using that key should fail auth
-    r4 = client.get('/', headers={'X-API-KEY': created_token})
+    # After revoke, using that key should fail auth on protected endpoint
+    r4 = client.post('/scans', headers={'X-API-KEY': created_token}, json={
+        'post_url': 'https://www.instagram.com/p/TEST123/',
+        'mode': 'keyword',
+        'threshold': 0.7,
+        'scrolls': 1,
+        'scroll_delay': 100
+    })
     assert r4.status_code == 401

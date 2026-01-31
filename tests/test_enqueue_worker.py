@@ -49,15 +49,10 @@ def test_enqueue_and_worker_processes_scan(monkeypatch, tmp_path):
     q = rq.Queue('default', connection=tasks.redis_conn)
     job = q.enqueue(tasks.process_scan, scan_id)
 
-    # Run a SimpleWorker in the background to process the job (burst mode)
+    # Run a SimpleWorker in-process to process the job (burst mode).
+    # Running in a thread on Windows triggers signal installation errors; run directly instead.
     worker = rq.SimpleWorker([q], connection=tasks.redis_conn)
-
-    def run_worker():
-        worker.work(burst=True)
-
-    t = Thread(target=run_worker)
-    t.start()
-    t.join(timeout=10)
+    worker.work(burst=True)
 
     # Check DB for results
     conn = sqlite3.connect('insta_poc.db')

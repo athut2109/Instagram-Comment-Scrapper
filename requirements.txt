@@ -26,6 +26,7 @@ fastapi==0.95.0
 uvicorn==0.22.0
 sqlalchemy==2.0.20
 pydantic==1.10.12  # pinned to <2.0 for FastAPI 0.95.x compatibility
+httpx==0.23.3  # pinned for starlette TestClient compatibility
 rq==1.1.0
 redis==5.0.6
 fakeredis==2.20.0
