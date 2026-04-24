@@ -24,16 +24,18 @@ def allow_request(redis_conn, key: str, limit: int, window_seconds: int) -> bool
 
     # Use a pipeline for atomicity
     pipe = redis_conn.pipeline()
-    pipe.zadd(zkey, {str(now_ms): now_ms})
     pipe.zremrangebyscore(zkey, 0, min_score)
     pipe.zcard(zkey)
-    pipe.expire(zkey, window_seconds + 1)
-    added, removed, count, _ = pipe.execute()
+    pipe.execute()
 
-    # count is an int
-    try:
-        c = int(count)
-    except Exception:
-        return True
-
-    return c <= limit
+    # Check count before adding the new request
+    count_before = redis_conn.zcard(zkey)
+    
+    if count_before >= limit:
+        return False
+    
+    # Add the new request to the window
+    redis_conn.zadd(zkey, {str(now_ms): now_ms})
+    redis_conn.expire(zkey, window_seconds + 1)
+    
+    return True

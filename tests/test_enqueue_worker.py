@@ -1,8 +1,10 @@
 import sqlite3
 from threading import Thread
 import time
+import platform
 
 import fakeredis
+import pytest
 import rq
 
 from scripts.init_db import main as init_db
@@ -14,6 +16,7 @@ def setup_module(module):
     init_db()
 
 
+@pytest.mark.skipif(platform.system() == "Windows", reason="RQ death_penalty uses signal.SIGALRM (Unix-only)")
 def test_enqueue_and_worker_processes_scan(monkeypatch, tmp_path):
     # Prepare DB with a test scan
     conn = sqlite3.connect('insta_poc.db')
