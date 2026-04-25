@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Admin - API Keys</title>
+  <style>body{font-family:Helvetica,Arial;margin:24px}button{margin:6px}</style>
+</head>
+<body>
+  <h2>API Keys (Admin UI)</h2>
+  <p>Enter your admin token to authenticate requests:</p>
+  <input id="token" placeholder="Admin token (X-API-KEY)" size="64" />
+  <button onclick="refresh()">Refresh keys</button>
+  <hr />
+  <h3>Create key</h3>
+  <input id="scopes" placeholder="scopes (comma-separated)" value="read,write" />
+  <input id="desc" placeholder="description" />
+  <button onclick="createKey()">Create</button>
+  <pre id="created" style="background:#f6f6f6;padding:8px"></pre>
+  <h3>Existing keys</h3>
+  <div id="keys" style="background:#f6f6f6;padding:8px"></div>
+
+  <script>
+    function authHeader() {
+      const t = document.getElementById('token').value.trim();
+      if (!t) alert('Please paste an admin token into the field at top');
+      return { 'X-API-KEY': t };
+    }
+
+    async function refresh() {
+      const headers = authHeader();
+      try {
+        const r = await fetch('/admin/keys', { headers });
+        if (!r.ok) throw new Error(await r.text());
+        const body = await r.json();
+        renderKeys(body.keys || []);
+      } catch (e) { alert('Failed to fetch keys: ' + e); }
+    }
+
+    function renderKeys(keys) {
+      if (!keys || keys.length === 0) {
+        document.getElementById('keys').innerHTML = '<em>No keys</em>';
+        return;
+      }
+      const rows = keys.map(k => {
+        const revoked = k.revoked ? '<strong style="color:#a00">REVOKED</strong>' : '';
+        return `<div style="border-bottom:1px solid #eee;padding:8px;margin-bottom:6px"><div><strong>ID:</strong> ${k.key_id} ${revoked}</div><div><strong>prefix:</strong> ${k.key_prefix} <strong>scopes:</strong> ${k.scopes}</div><div><strong>desc:</strong> ${k.description || ''}</div><div><button onclick="revokeKey('${k.key_id}')">Revoke</button></div></div>`;
+      });
+      document.getElementById('keys').innerHTML = rows.join('\n');
+    }
+
+    async function revokeKey(keyId) {
+      if (!confirm('Revoke key ' + keyId + '?')) return;
+      const headers = authHeader();
+      try {
+        const r = await fetch(`/admin/keys/${keyId}/revoke`, { method: 'POST', headers });
+        if (!r.ok) throw new Error(await r.text());
+        alert('Revoked');
+        refresh();
+      } catch (e) { alert('Failed to revoke key: ' + e); }
+    }
+
+    async function createKey() {
+      const headers = Object.assign({'Content-Type': 'application/json'}, authHeader());
+      const payload = { scopes: document.getElementById('scopes').value, description: document.getElementById('desc').value };
+      try {
+        const r = await fetch('/admin/keys', { method: 'POST', headers, body: JSON.stringify(payload) });
+        if (!r.ok) throw new Error(await r.text());
+        const body = await r.json();
+        document.getElementById('created').textContent = JSON.stringify(body, null, 2);
+        refresh();
+      } catch (e) { alert('Failed to create key: ' + e); }
+    }
+
+    // Initial load uses a short timeout so the UI is responsive
+    setTimeout(() => { /* no-op */ }, 100);
+  </script>
+</body>
+</html>

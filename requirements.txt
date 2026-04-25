@@ -1,0 +1,32 @@
+# Core dependencies for web scraping
+playwright==1.48.0
+emoji==2.14.0
+
+# ML/NLP dependencies for abuse detection
+# Choose ONE of the following options:
+
+# Option 1: Detoxify (RECOMMENDED - Easiest and most accurate)
+detoxify==0.5.2
+
+# Option 2: Transformers (More flexible, multiple models available)
+# transformers==4.46.3
+# torch==2.5.1
+
+# Option 3: Basic sentiment analysis (Fallback only)
+# textblob==0.18.0.post0
+
+# Optional: Claude API for AI-powered detection (requires API key)
+# anthropic==0.39.0
+
+# Development/Testing
+pytest==8.3.4
+
+# PoC dependencies
+fastapi==0.95.0
+uvicorn==0.22.0
+sqlalchemy==2.0.20
+pydantic==1.10.12  # pinned to <2.0 for FastAPI 0.95.x compatibility
+httpx==0.23.3  # pinned for starlette TestClient compatibility
+rq==1.1.0
+redis==5.0.6
+fakeredis==2.20.0
